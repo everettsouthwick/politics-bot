@@ -4,7 +4,7 @@ import random
 import json
 import os
 import sys
-from commands import * 
+from commands import *
 
 description = '''An example bot to showcase the discord.ext.commands extension
 module.
