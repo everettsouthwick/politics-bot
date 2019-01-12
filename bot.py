@@ -1,21 +1,27 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands as cmd
 import random
 import json
 import os
 import sys
+from commands import * 
 
 description = '''An example bot to showcase the discord.ext.commands extension
 module.
 There are a number of utility commands being showcased here.'''
-bot = commands.Bot(command_prefix='!', description=description)
+bot = cmd.Bot(command_prefix='!', description=description)
 
 @bot.event
 async def on_ready():
     print('Logged in as')
-    print(bot.user.name)
+    print(bot.user.name) 
     print(bot.user.id)
     print('------')
+
+@bot.command()
+async def clap(*content : str):
+    await bot.say(clap(content))
+
 
 @bot.command()
 async def add(left : int, right : int):
