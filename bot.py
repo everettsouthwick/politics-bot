@@ -1,74 +1,64 @@
+import os, sys, json, traceback
 import discord
-from discord.ext import commands as cmd
-import random
-import json
-import os
-import sys
-from commands import *
+from discord.ext import commands
 
-description = '''An example bot to showcase the discord.ext.commands extension
-module.
-There are a number of utility commands being showcased here.'''
-bot = cmd.Bot(command_prefix='!', description=description)
+"""This is a multi file example showcasing many features of the command extension and the use of cogs.
+These are examples only and are not intended to be used as a fully functioning bot. Rather they should give you a basic
+understanding and platform for creating your own bot.
+These examples make use of Python 3.6.2 and the rewrite version on the lib.
+For examples on cogs for the async version:
+https://gist.github.com/leovoel/46cd89ed6a8f41fd09c5
+Rewrite Documentation:
+http://discordpy.readthedocs.io/en/rewrite/api.html
+Rewrite Commands Documentation:
+http://discordpy.readthedocs.io/en/rewrite/ext/commands/api.html
+Familiarising yourself with the documentation will greatly help you in creating your bot and using cogs.
+"""
+
+
+def get_prefix(bot, message):
+    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
+
+    # Notice how you can use spaces in prefixes. Try to keep them simple though.
+    prefixes = ['>?', 'lol ', '!?']
+
+    # Check to see if we are outside of a guild. e.g DM's etc.
+    if not message.guild:
+        # Only allow ? to be used in DMs
+        return '?'
+
+    # If we are in a guild, we allow for the user to mention us or use any of the prefixes in our list.
+    return commands.when_mentioned_or(*prefixes)(bot, message)
+
+
+# Below cogs represents our folder our cogs are in. Following is the file name. So 'meme.py' in cogs, would be cogs.meme
+# Think of it like a dot path import
+initial_extensions = ['cogs.simple',
+                      'cogs.members',
+                      'cogs.owner']
+
+bot = commands.Bot(command_prefix=get_prefix, description='A Rewrite Cog Example')
+
+# Here we load our extensions(cogs) listed above in [initial_extensions].
+if __name__ == '__main__':
+    for extension in initial_extensions:
+        try:
+            bot.load_extension(extension)
+        except Exception as e:
+            print(f'Failed to load extension {extension}.', file=sys.stderr)
+            traceback.print_exc()
+
 
 @bot.event
 async def on_ready():
-    print('Logged in as')
-    print(bot.user.name) 
-    print(bot.user.id)
-    print('------')
+    """http://discordpy.readthedocs.io/en/rewrite/api.html#discord.on_ready"""
 
-@bot.command()
-async def clap(*content : str):
-    await bot.say(clap(content))
+    print(f'\n\nLogged in as: {bot.user.name} - {bot.user.id}\nVersion: {discord.__version__}\n')
 
-
-@bot.command()
-async def add(left : int, right : int):
-    """Adds two numbers together."""
-    await bot.say(left + right)
-
-@bot.command()
-async def roll(dice : str):
-    """Rolls a dice in NdN format."""
-    try:
-        rolls, limit = map(int, dice.split('d'))
-    except Exception:
-        await bot.say('Format has to be in NdN!')
-        return
-
-    result = ', '.join(str(random.randint(1, limit)) for r in range(rolls))
-    await bot.say(result)
-
-@bot.command(description='For when you wanna settle the score some other way')
-async def choose(*choices : str):
-    """Chooses between multiple choices."""
-    await bot.say(random.choice(choices))
-
-@bot.command()
-async def repeat(times : int, content='repeating...'):
-    """Repeats a message multiple times."""
-    for i in range(times):
-        await bot.say(content)
-
-@bot.command()
-async def joined(member : discord.Member):
-    """Says when a member joined."""
-    await bot.say('{0.name} joined in {0.joined_at}'.format(member))
-
-@bot.group(pass_context=True)
-async def cool(ctx):
-    """Says if a user is cool.
-    In reality this just checks if a subcommand is being invoked.
-    """
-    if ctx.invoked_subcommand is None:
-        await bot.say('No, {0.subcommand_passed} is not cool'.format(ctx))
-
-@cool.command(name='bot')
-async def _bot():
-    """Is the bot cool?"""
-    await bot.say('Yes, the bot is cool.')
+    # Changes our bots Playing Status. type=1(streaming) for a standard game you could remove type and url.
+    await bot.change_presence(game=discord.Game(name='Cogs Example', type=1, url='https://twitch.tv/kraken'))
+    print(f'Successfully logged in and booted...!')
 
 with open("{}/config.json".format(os.path.dirname(os.path.realpath(sys.argv[0])))) as properties:
     data = json.load(properties)
-    bot.run(data["token"])
+    bot.run(data["token"], bot=True, reconnect=True)
