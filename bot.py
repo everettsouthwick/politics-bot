@@ -1,64 +1,64 @@
 import os, sys, json, traceback
-import discord
 from discord.ext import commands
+from os import listdir
+from os.path import isfile, join
 
-"""This is a multi file example showcasing many features of the command extension and the use of cogs.
-These are examples only and are not intended to be used as a fully functioning bot. Rather they should give you a basic
-understanding and platform for creating your own bot.
-These examples make use of Python 3.6.2 and the rewrite version on the lib.
-For examples on cogs for the async version:
-https://gist.github.com/leovoel/46cd89ed6a8f41fd09c5
-Rewrite Documentation:
-http://discordpy.readthedocs.io/en/rewrite/api.html
-Rewrite Commands Documentation:
-http://discordpy.readthedocs.io/en/rewrite/ext/commands/api.html
-Familiarising yourself with the documentation will greatly help you in creating your bot and using cogs.
-"""
+description = '''An example bot to showcase the discord.ext.commands extension
+module.
 
+There are a number of utility commands being showcased here.'''
 
-def get_prefix(bot, message):
-    """A callable Prefix for our bot. This could be edited to allow per server prefixes."""
+# this specifies what extensions to load when the bot starts up (from this directory)
+COGS_DIR = "cogs"
+BOT_PREFIX = ("!", ".")
 
-    # Notice how you can use spaces in prefixes. Try to keep them simple though.
-    prefixes = ['>?', 'lol ', '!?']
-
-    # Check to see if we are outside of a guild. e.g DM's etc.
-    if not message.guild:
-        # Only allow ? to be used in DMs
-        return '?'
-
-    # If we are in a guild, we allow for the user to mention us or use any of the prefixes in our list.
-    return commands.when_mentioned_or(*prefixes)(bot, message)
-
-
-# Below cogs represents our folder our cogs are in. Following is the file name. So 'meme.py' in cogs, would be cogs.meme
-# Think of it like a dot path import
-initial_extensions = ['cogs.simple',
-                      'cogs.members',
-                      'cogs.owner']
-
-bot = commands.Bot(command_prefix=get_prefix, description='A Rewrite Cog Example')
-
-# Here we load our extensions(cogs) listed above in [initial_extensions].
-if __name__ == '__main__':
-    for extension in initial_extensions:
-        try:
-            bot.load_extension(extension)
-        except Exception as e:
-            print(f'Failed to load extension {extension}.', file=sys.stderr)
-            traceback.print_exc()
-
+bot = commands.Bot(command_prefix=BOT_PREFIX, description=description)
 
 @bot.event
 async def on_ready():
-    """http://discordpy.readthedocs.io/en/rewrite/api.html#discord.on_ready"""
+    print('Logged in as')
+    print(bot.user.name)
+    print(bot.user.id)
+    print('------')
 
-    print(f'\n\nLogged in as: {bot.user.name} - {bot.user.id}\nVersion: {discord.__version__}\n')
+@bot.command()
+async def load(extension_name : str):
+    """Loads an extension."""
+    try:
+        bot.load_extension(extension_name)
+    except (AttributeError, ImportError) as e:
+        await bot.say("```py\n{}: {}\n```".format(type(e).__name__, str(e)))
+        return
+    await bot.say("{} loaded.".format(extension_name))
 
-    # Changes our bots Playing Status. type=1(streaming) for a standard game you could remove type and url.
-    await bot.change_presence(game=discord.Game(name='Cogs Example', type=1, url='https://twitch.tv/kraken'))
-    print(f'Successfully logged in and booted...!')
+@bot.command()
+async def unload(extension_name : str):
+    """Unloads an extension."""
+    bot.unload_extension(extension_name)
+    await bot.say("{} unloaded.".format(extension_name))
 
-with open("{}/config.json".format(os.path.dirname(os.path.realpath(sys.argv[0])))) as properties:
-    data = json.load(properties)
-    bot.run(data["token"], bot=True, reconnect=True)
+@bot.command()
+async def add(left : int, right : int):
+    """Adds two numbers together."""
+    await bot.say(left + right)
+
+@bot.command()
+async def repeat(times : int, content='repeating...'):
+    """Repeats a message multiple times."""
+    for i in range(times):
+        await bot.say(content)
+
+if __name__ == "__main__":
+    for extension in [f.replace('.py', '') for f in listdir(COGS_DIR) if isfile(join(COGS_DIR, f))]:
+        try:
+            bot.load_extension(COGS_DIR + "." + extension)
+        except Exception as e:
+            print(f'Failed to load extension {extension}.')
+            traceback.print_exc()
+
+    with open("{}/config.json".format(os.path.dirname(os.path.realpath(sys.argv[0])))) as properties:
+        data = json.load(properties)
+        bot.run(data["discord"]["token"], bot=True, reconnect=True)
+
+
+
